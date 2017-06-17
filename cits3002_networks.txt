@@ -1,0 +1,863 @@
+(1)
+
+    (a) Using pseudo-code similar to either Java or C, develop a small set
+        of methods or functions to simulate network stations communicating
+        using a slotted aloha protocol. Explain how the maximum observed
+        channel utilization may be calculated
+
+        struct aloha_node {
+            int retransmit;
+            int transmitting;
+            int attempts;
+            int transmissions;
+        }
+
+        static float aloha_sim(int iterations,
+                               int n_nodes,
+                               float prob_transmit,
+                               float prob_retransmit) {
+            struct aloha_node *nodes = calloc(0, sizeof(aloha_node) * n_nodes);
+            int channel_utilizations = 0;
+
+            while (iterations--) {
+                int n_transmissions = 0;
+
+                for (int i = 0; i < n_nodes; ++i) {
+                    struct aloha_node *node = &nodes[i];
+                    if (node->retransmit) {
+                        node->transmitting = rand() < prob_retransmit;
+                    } else {
+                        node->transmitting = rand() < prob_transmit;
+                    }
+
+                    if (node->transmitting) {
+                        ++n_transmissions;
+                        ++node->attempts;
+                    }
+                }
+
+                /* Did we have a collision ? */
+                int collision = n_transmissions > 1;
+                if (n_transmissions == 1) {
+                    ++channel_utilizations;
+                }
+
+                /* Update state of nodes */
+                for (int i = 0; i < n_nodes; ++i) {
+                    struct aloha_node *node = &nodes[i];
+                    if (node->transmitting) {
+                        node->retransmit = collission;
+                        node->transmitting = 0;
+                        /* Add to successful transmissions if there was no
+                         * collision */
+                        node->transmissions = += (1 - collission);
+                    }
+                }
+            }
+
+            return channel_utilizations / (float) iterations;
+        }
+
+        To calculate the maximum observed channel utilziations, we can take
+        the number of successful channel utilizations and divide by the number
+        of attempts. We define "successful channel utilization" as one node
+        broadcasting.
+
+    (b) Consider the delivery of messages in an internetworked environment
+        in which the source and destination nodes are many hops apart.
+        Large messages must be fragmented and reassembled using one of
+        two possible approaches.
+
+        (1) Fragment at source and reassemble at dst
+        (2) Fragment and reassemble at each intermediate node
+
+        Why would you want one over the other in different circumstances?
+
+        The first approach makes more sense where the message fragments
+        could be transmitted through different paths and reassembled at the
+        destination node. In such a case you would be optimizing for
+        throughput, but potentially sacrificing latency if the reassembled
+        message was damaged on the other end and it had to be retransmitted.
+
+        The second approach makes more sense where latency is more important
+        than throughput - the entire message needs to take a single path, but
+        it can be rejected and sent again at any intermediate node as opposed
+        to having to get all the way to the end.
+
+    2(a) IPv4 is running out of addresses, but we're still adding new hosts,
+         why?
+
+         (1) NAT and the 192.168/10.1 address spaces: Most hosts don't actually
+             need to be externally reachable - they just need to be able to
+             send messages and receive responses. 
+
+         (2) Address recycling: Most addresses are not fixed and can be recycled
+             given the number of hosts on the network.
+
+
+         (3) Carrier-Grade NAT: We have five million addresses within this
+             pool. This essentially allocates every node connected to an ISP
+             with a private IP address and the ISP itself with a public IP
+             address.
+
+         (4) Relinquishment of Class A addresses : This will return a few 
+             million addresses back to the network.
+
+
+         Will it be possible to extend the lifespan of IPv4 indefinitely? Not
+         indefinitely, there are still a finite number of possible addresses
+         even when you include NAT. However, at least with carrier-grade
+         NAT, you now have another 65025 * 5 * 10^6 remaining addresses.
+
+         Of course, the main problem with NAT is that you can't be a host. So
+         especially with IoT where you might want things to be hosts, you'll
+         need to have a public IP and there are always going to be a finite
+         amount of these.
+
+    2(b) With reference to two examples, explain the relationship between IP
+         and ICMP:
+
+             ICMP is a helper protocol for IP to help maintain and operate
+             the network.
+
+             IP Packets have a source IP address, a destination IP
+             address and a payload of data. ICMP messages are contained within
+             IP packets and are used to tell nodes about characteristics about
+             the network.
+
+             For instance, in a network like:
+
+             A B C D E F
+
+             A might want to send an IP packet to F, which must get routed
+             through nodes B C D and E. Node E is unreacahble from node D, so
+             the message is undeliverable. Node E will send an ICMP Destination
+             Unreachable message to node D, then back to C, B and then A.
+
+             Or, for instance, there is a loop between B C, D and E and F can't
+             be reached because it would be an infinite number of hops away. When
+             the TTL field on the packet reaches zero, an ICMP "time exceeded"
+             message is sent back from the gateway to the source indicating
+             that the message couldn't be delivered.
+
+             Another example would be the ICMP Redirect message, which informs
+             some host to update its routing information and send data on an
+             alternative route.
+
+    2(c) Both UDP and TCP employ port numbers to identify a destination entity
+         when delivering a message. Why not process IDs?
+
+             (1) Not portable - could be an operating system that doesn't
+                 have process IDs or even processes in any meaningful sense.
+                 Also, what is the limit for a "process ID". Eventually you'd end
+                 up in a situation where the number of valid process IDs exceeded
+                 the number of valid process IDs available in the protocol.
+
+             (2) There is a loose mapping of ports to protocols which allows
+                 network administrators to filter or prioritise traffic based
+                 on the port number. It also simplifies the design of connecting
+                 to hosts a lot - you should have to know the process ID in
+                 advance in order to be able to connect to a host. If you want
+                 to connect to an HTTP server on the host, it is far easier to
+                 connect to port 80 rather than having to guess or interrogate
+                 the host as to which process ID httpd is. Also, what if httpd
+                 gets interrupted? This would just be a really bad idea.
+
+     3(i) (See attached diagram)
+
+      (ii) (1) The Mobile IPv4 device needs to trust the foreign agent not
+               to intercept or tamper with its packets and to route them
+               to the right place. This is a generalized problem at the
+               network layer however and is usually addressed with encryption
+               at the presentation or application layers.
+
+           (2) More problematically, the home agent needs to trust the
+               authenticity of the packets being sent to it by the foreign
+               agent because the client is going to think that they are talking
+               to the same IP address the whole time. It would need to know,
+               for instance, that the foreign agent was actually representing
+               the client with the given home address. If someone got ahold
+               of the home address for the client, they could easily spoof
+               the foreign agent.
+
+      (iii) To address the first problem you'd probably want some sort of
+            encryption between the client and the device at the application
+            level.
+
+            Addressing the second problem would require that the foreign
+            agent be able to prove that it is representing the mobile IPv4
+            device. When the negotiation process occurrs between a foreign
+            agent and a home agent, the foreign agent could be required to send
+            some secret that only the device and the home agent know about
+            in order to prove that it is indeed representing that device.
+
+            Of course, this yields a problem where after authentication occurrs
+            the foreign agent can do what it likes. To counteract this, the
+            device could sign the traffic that it sends back to the home agent
+            with its private key that the home agent verifies using its public
+            key. This would at least prove that the responses are coming
+            from the device itself and not a third party.
+
+    (4)(a) ARP associates hardware addresses with IP addresses, which may change
+           over time. Each node in the network maintains an ARP cache. Nodes
+           which don't have an entry in the cache have to broadcast an ARP
+           request that also contains it own IP and hardware address.
+
+           Vulnerabilities for spoofing? Since it is a broadcast packet, every
+           node on the network can just respond saying that it is the destination
+           for a given IP address. Then traffic will be routed to that node.
+
+           One possible defence against this is the use of a consensus protocol -
+           one bad node on the network might advertise itself as being the
+           destination for a given IP address, but other nodes which have
+           seen the legitimate IP and hardware address pair before might
+           respond with their own IP and hardware address pairs which in effect
+           outvote the bad node. This doesn't work in situations where the bad
+           node has always been present in the network.
+
+           Another possible defence is to explicitly disallow the situation
+           where one hardware address has multiple IP addresses. This would at
+           least limit the damage that a bad node can do, with the likelihood
+           that the honest node will just eventually be reassigned another
+           address.
+
+    (4)(b) We continue to see a number of new FTP clients with a greatly
+           increased set of features. How is this posslbe?
+
+
+           (1) The clients are just providing an abstraction over the FTP
+               protocol which appears to be more useful but actually might
+               be implemented inefficiently. For instance, perhaps FTP might
+               only support transferring a single file at a time - an FTP
+               client might support transferring directories by transferrin
+               each file in the directory recursively/
+
+2015:
+(1)
+
+    (a) Most ISPs limit the volume of internet traffic that their customers
+        may receive and send. Provide two explanations as to how this can work
+        and what the tradeoffs are
+
+        Leaky Bucket: The ISP just buffers up the traffic sent by the client
+        or the traffic sent to the client and sends it out at a constant rate. If
+        the buffer fills up at any given moment, packets get dropped and the
+        sender will have to re-send them.
+
+            ISPs might want to use this approach where the total concurrent
+            network saturation needs to be capped at a certain amount. It would
+            at least guarantee that all users on the network have a maximum
+            bandwidth if the network is fully saturated.
+
+        Token Bucket: "Tokens" are granted to an ISP client over time up to a
+        certain maximum amount. Every N bytes uses up one of these tokens, the
+        difference between that during the time those tokens are being used, the
+        client can send and receive traffic at the highest possible bandwidth
+        their communication will allow. When the tokens run out, packets are
+        rejected.
+
+            ISPs might want to use this approach where they expect traffic to
+            be spaced out over time and want to offer a "burst" service to
+            the clients.
+
+     (b) Develop some pseudo-code that simulates the behaviour of the 1-persistent
+         CSMA-CD Protocol over 10Mbps ethernet
+
+         The simulation should support N identical nodes each wishing to transmit
+         a frame to other nodes at random intervals. Assume that the Ethernet's
+         slot time is 52 microseconds and that collision detection and resolution
+         takes exactly one slot time.
+
+         struct node {
+            unsigned int wants_to_transmit;
+            unsigned int wait;
+            unsigned int transmit_countdown;
+         };
+
+         static float csma_cd(unsigned int n_nodes, float prob, unsigned int sim_iterations) {
+             const unsigned int transmit_window = 56;
+             const unsigned int sim_time = sim_iterations * transmit_window;
+
+             struct node *nodes = calloc(0, sizeof(struct node) * n_nodes);
+             unsigned int someone_is_transmitting = 0;
+             unsigned int collisions = 0;
+             unsigned int used_microslots = 0;
+
+             while (sim_time--) {
+                 /* First determine which nodes want to transmit
+                  * by setting the wants_to_transmit flag */
+                 for (unsigned int i = 0; i < n_nodes; ++i) {
+                     struct node *n = &nodes[i];
+                     /* We might need to wait */
+                     if (node->wait == 0)
+                       n->wants_to_transmit = n->wants_to_transmit || rand() < prob;
+                     else
+                       node->wait--;
+                 }
+
+                 unsigned int someone_was_transmitting = someone_is_transmitting;
+
+                 /* Okay, now look at the network and see if anyone is transmitting
+                  * and if not, transmit ourselves */
+                 for (unsigned int i = 0; i < n_nodes; ++i) {
+                     struct node *n = &nodes[i];
+                     if (!someone_was_transmitting) {
+                        n->transmit_countdown = transmit_window;
+                        n->wants_to_transmit = 0;
+                        ++someone_is_transmitting;
+                     } else {
+                        n->wait = transmit_window;
+                     }
+                 }
+
+                 /* Collision detected, need to wait for ceil(rand * 10) * transmit_window */
+                 if (someone_is_transmitting > 1) {
+                     for (unsigned int i = 0; i < n_nodes; ++i) {
+                         struct node *n = &nodes[i];
+                         n->wait = ceil(rand * 10) * (pow(2, collissions)) * transmit_window;
+                         n->transmit_countdown = 0;
+                         someone_is_transmitting = 0;
+                         collisions++;
+                     }
+                 } else if (someone_is_transmitting == 1) {
+                     for (unsigned int i = 0; i < n_nodes; ++i) {
+                         struct node *n = &nodes[i];
+                         if (n->transmit_countdown) {
+                             if (!--n->transmit_countdown) {
+                                someone_is_transmitting = 0;
+                             }
+                             used_microslots++;
+                         }
+                         collisions = 0;
+                     }
+                 }
+             }
+
+             return (sim_iterations * transmit_window) / (float) used_microslots;
+         }
+
+(2)
+
+    (a) Explain why IPv4 is running out of addresses:
+
+        (i) Because IPv4 is a 32 bit addressing scheme, there are only
+            2^32 unique addresses and the growth in internet connected devices
+            has meant that there are more devices on the internet than
+            possible addresses.
+
+        (ii) As part of the design of IPv4, the address space was segmented
+             into different classes. Classes containing a lot of addresses
+             were allocated very early and the last public address space
+             was allocated in 2011. There are also entire ranges of addresses
+             that were set aside as private namespaces and class E
+             reserved addresses which cannot be allocated as some devices
+             won't recognise them.
+
+
+        Mitigation:
+
+        (i) Network Address Translation, generally: Not every device on the
+            internet needs to be a reachable host. We can encode additional
+            routing information in the port number such that gateways on private
+            networks can route incoming traffic to the correct host if it
+            is in reply to some other packet.
+
+        (ii) Carrier Grade NAT: Same thing, but on the scale of the ISP itself
+             as opposed to ISP clients. This effectively means that clients
+             within the ISP's private network cannot act as hosts, but it does
+             allow the ISP to allocate up to around 65,000 private IP addresses
+
+        (iii) Address recycling: Entities that received large blocks of IPv4
+              addresses during class A allocation are returning those blocks. There
+              are also private markets for IPv4 addresses to encourage unused
+              addresses to be returned to the allocation pool.
+
+    (b) Briefly describe some of the desirable properties of a robust message
+        digest algorithm.
+
+         (i) It should be easy to re-create a message-digest for the same message
+             but very difficult to generate a collision where two different
+             messages, even if slightly different, have the same digest.
+
+         (ii) Small changes to the input message data should generate a large
+              change to the message digest.
+
+
+        Outline two distinct examples of how a message digest algorithm may
+        be employed to ensure the integrity of data:
+
+            (1) Digital Signatures: We apply our private key to the message
+                digest. When decrypting using the public key, the result should
+                be the digest of the incoming message. This is a cryptographically
+                strong way of ensuring that so long as the sender has not
+                lost control over their private key, that they intended to send
+                the message that the receiver received.
+
+            (2) When validating a large payload - CRC is not sufficient here
+                because it is not cryptographically random enough - a packet
+                can be crafted so as to compute to a partcular CRC. We want to
+                ensure that the file as-assembled matches some message digest
+                that we expect. The underlying packets could have easily been
+                tampered with and their CRCs updated.
+
+(3)
+
+    (a) Single Ethernet packet carrying an HTTP request using TCP/IP (revise)
+
+    (b) The ISO/OSI networking group defined six distinct software mechanisms
+        forming their ISO/OSI Security Architecture. Briefly describe them.
+
+        Authentication: Sender should be able to verify who they are talking to
+        Access Control: Access to resources should be restricted to given nodes
+        Confidentiality: Messages should not be readable in the middle
+        Integrity: Nodes should be able to tell if messages have been tampered with
+        Availability: No DDoS
+        Non-Repudiation: Sender should not be able to deny sending a message
+
+(4)
+
+    (a) With the aid of an example, describe how someone could undertake an
+        MITM attack
+
+        In order for host A to connect to host B, it must connect through host
+        M. It might be the case that host M might not be trustworthy, or more
+        likely, that host M, through DNS poisoning or ARP poisoning, masquerades
+        as host B.
+
+        Host A sends traffic to host M, either because it thinks that it the
+        only way to get to host B, or because it thinks it *is* host B. Host M,
+        meanwhile, forwards some of that traffic to host B, which think it is
+        communicating with Host A. After the connection is established, Host M
+        is free to read and write the traffic as it goes back and forth between
+        hosts A and B, either capturing confidential information or tampering
+        with the result of the traffic.
+
+        How could the attack be prevented?
+
+        By the use of a security scheme with ensures message integrity,
+        authenticity and confidentiality. The client should be able to
+        verify that the host is who they say they are, in the sense that they
+        should be able to respond to some challenge with the expected response. Keys
+        should also be negotiated using a process such as Diffie-Hellman key
+        exchange, where the listener would be unable to derive the keys
+        based on the exchange between the two hosts. After that, traffic should
+        be encrypted such that the attacker would be unable to make sense of it
+        nor modify it without access to the derived session keys.
+
+
+    (b) Design of an IP based internet chat system that permits multiple
+        users to converse using single-line text messages. Design this
+        using the berkely sockets API.
+
+        Chat Monitor:
+
+
+2014 Paper:
+
+(1)
+
+    (a) Explain the difference between protocols incorporating go-back-N
+        and selective-repeat
+
+        A go-back-N protocol specifies which number to repeat from and the
+        entire transmission must be repeated from that point. Selective
+        repeat allows a receiver to specify which frames it did not receive
+        in its NACK. The go-back-N protocol wastes bandwidth retransmitting
+        frames if the error rate is high.
+
+        In both cases, a buffer must be kept to a certain size and ACKs must
+        be received up to a certain point. However, in the selective repeat
+        case, the sender can throw away frames that the receiver has already
+        acknowledged, allowing it to potentially transmit more. However,
+        the protocol becomes a lot more complicated at this point.
+
+
+    (a.1) Is it meaningful for a receiver to have a bigger sliding window size
+          than the sender?
+
+          No, since the sender will only send up to N frames at a time without
+          them being acknowledged. Thus, there are going to be up to 10 unassembled
+          frames on the receiver side or they would have all been sent up to the
+          network layer.
+
+    (a.2) To what extent does frame piggybacking reduce traffic?
+
+          Frame piggybacking puts an acknowledgement for a prior frame on to
+          a new data frame that is sent by the receiver. It can reduce the
+          amount of overhead in the traffic by in cases where you have near
+          full-duplex communication because you can avoid the frame overhead
+          for ACKs. This helps when you have a lower propagation delay (latency).
+
+   (a.3) Where will NACKs help to improve network performance?
+
+         Using NACKs means that in cases where a checksum validation failed, you
+         can communicate this back to the sender instead of waiting on them
+         to time out. If the estimated round trip time is a lot longer than
+         it would take to just send then NACK to the sender for that frame
+         then it is faster to just send NACKs.
+
+   (a.4) What is the difference between RTT and propagation delay
+
+         Propogation delay is the single direction latency, RTT is twice that.
+
+
+General Quiz:
+
+(0) Parity bit
+
+    Just a single bit at the end which indicates whether the preceding data was
+    even or odd. The problem with this is that if the data gets garbled enough,
+    we might also touch the parity bit, or we might change an even sequence
+    into another even sequence.
+
+(1) Hamming Distance
+
+    Hamming distance between two codewords is the number of differing bit positions
+    (e.g., XOR).
+
+(2) Hamming Codes
+
+    We start with our message and start filing in a hamming codeword. We don’t
+    write to powers of two in the buffer and skip them, since we’ll use them for
+    parity computation. So, for instance, the message:
+
+        101101
+
+    Will put into the buffer as:
+
+        1 2 3 4 5 6 7 8 9
+            1   1 1 0   1
+
+    Then we compute the hamming codes, by checking bit patterns of every N bits
+    (we treat hamming positions as zero)
+
+(1)
+    1, 3, 5, 7, 9
+    0, 1, 1, 0, 1 (odd)
+
+        1 2 3 4 5 6 7 8 9
+        1   1   1 1 0   1
+
+(2)
+    2, 3, 6, 7
+    0, 1, 1, 0 (even)
+
+        1 2 3 4 5 6 7 8 9
+        1 0 1   1 1 0   1
+
+(4)
+    4, 5, 6, 7
+    0, 1, 1, 0 (even)
+
+        1 2 3 4 5 6 7 8 9
+        1 0 1 0 1 1 0   1
+
+(8)
+    8, 9
+    0, 1 (odd)
+
+        1 2 3 4 5 6 7 8 9
+        1 0 1 0 1 1 0 1 1
+
+    To detect errors, you can do the same process in reverse and
+    then add up the positions of the check bits that are wrong. Lets say
+    for instance that we receive a bitstream of:
+
+        1 2 3 4 5 6 7 8 9
+        1 0 1 0 1 0 0 1 1
+
+(1) value 1
+    1, 3, 5, 7, 9
+    0, 1, 1, 0, 1 (odd)
+
+        1 2 3 4 5 6 7 8 9
+        1 0 1 0 1 0 0 1 1
+
+(2) value 0
+    3, 4, 7, 8
+    1, 0, 0, 0 (odd) (incorrect!)
+
+        1 2 3 4 5 6 7 8 9
+        1 0 1 0 1 0 0 1 1
+
+(4) value 0
+    4, 5, 6, 7
+    0, 1, 0, 0 (odd) (incorrect!)
+
+        1 2 3 4 5 6 7 8 9
+        1 0 1 0 1 0 0 1 1
+
+(8)
+    8, 9
+    0, 1 (odd)
+
+        1 2 3 4 5 6 7 8 9
+        1 0 1 0 1 1 0 1 1
+
+    Two odd bits, 2 and 4 - add them and you get 6, which was our incorrect bit.
+
+
+(3) What is the backoff algorithm for 802.3?
+
+    If a collision is detected, you back off for a random period during the slot time.
+    If there is another collision, back off during random period in 2 slot times, then 4
+    then 8 (e.g., 2^n). Called binary exponential backoff
+
+(4) Why have you got a preamble that is 62 bits long?
+
+    This is the minimum amount of time required to detect a collision on the network so
+    that you don’t transmit during a collision before you hear it.
+
+(5) Why might you need a bridge?
+
+    In order to deal with the different requirements between different Data Link Layers
+    (e.g., WiFi and Ethernet).
+
+(6) Greek God of Chastity Problem
+
+    Packet loss undecidability problem - it is the passage of time that provides the
+    information, eg it takes n - 1 rounds to determine if there were n collisions.
+
+(6.1) Byzantine Generals Problem
+
+      The sender of the ACK has no idea whether or not the ACK got through, unless they
+      receive another ACK for their ACK. Can’t just solve it by tacking on ACKs since
+      even if the sender sends an ACK for the receiver’s ACK, they have no idea whether
+      or not the ACK was received or not. Both generals will be left wondering whether
+      or not the last message got through.
+
+(7) Describe the sequence of transmission in WiFi
+
+    Sender emits RTS on transmission boundary with encoding on how long it intends to
+    use the channel. All other nodes that hear the transmission must stop transmitting
+    for the specified channel utilisation time. Receiver if it hears RTS emits CTS
+    until transmission time. All other nodes hearing CTS must stop transmitting until
+    transmission time.
+
+    If NO CTS arrives at the sender, they assume a collision and undergo standard 802.3
+    binary exponential backoff.
+
+(8) Why does WiFi employ collision avoidance as opposed to collision detection?
+
+    You can’t hear your own transmission since they don’t employ full-duplex
+    transmissions, which means that you couldn’t hear your own transmission. The
+    sender and receiver exchange control frames before the true data frames so
+    as to reserve the entire medium.
+
+(9) Describe what happens when a WiFi client wants to connect to an AP
+
+    The client sends probe frames, all access points within range reply
+    with a probe response. Then association request, association response.
+
+(10) What is the main attack vector against WEP
+
+     WEP key is shared amongst all the people using the network. However, you can
+     use statistical analysis to decrypt traffic, you can also perform a known
+     plaintext attack since the key is symmetric.
+
+(11) What are some of the responsibilities of the network layer
+
+     1. Packet fragmentation and reassembly
+     2. Manipulation of network layer sequence numbers
+     3. Routing
+     4. Network flow control, topological awareness and modification
+
+(12) Why don’t we use sequence numbers for network layer packets
+
+     Because packets might be further fragmented as they travel across
+     mediums, leading to a confusing reassembly process on the other end - instead
+     we specify the byte offsets in the transmission in each packet.
+
+(13) Why might you have different packet priorities
+
+     If you need to deal with flow control on the network, acks etc will have
+     higher priority than data packets which can always be re-sent.
+
+(14) Distance vector routing worked example:
+
+     A -(1)- B
+     B -(2)- C
+     A -(4)- D
+     B -(1)- D
+
+    A pings B(1) and D(4), B pings C(2) and D(1)
+
+    A 0 A                    A ? ?
+    B 1 B                    B 0 B
+    C ? ?                    C 2 C
+    D 4 D                    D 1 D
+
+    A broadcasts its table to B and D, so B and D now know this:
+
+    B:                    D:
+
+    A 1                   A 4 A
+    B 0                   B 1 B
+    C 2                   C ? ?
+    D 1                   D 0 D
+
+    B broadcasts its table to D and C, so D and C now know this:
+
+    D:                    C:
+
+    A 4 A                 A 3 B
+    B 1 B                 B 2 B
+    C 3 B                 C 0 C
+    D 0 D                 D 3 B
+
+(15) What is the count to infinity problem?
+
+     Essentially the link gets caught in a circle because of the fact
+     that we can’t get to a node that has a severed link.
+
+(16) Why Link State Routing over Distance Vector Routing?
+
+     Once we get to more than a few thousand nodes, any sort of scheme that
+     relies on tables or maximum sizes will generate a lot of overhead
+     especially if you never send traffic to them. So, what we do instead is:
+
+     1. Discover network addresses
+     2. Measure delay to neighbours
+     3. Construct and broadcast link state packets containing all learned local links
+     4. Compute shortest path to each other router.
+
+     Generally speaking you only care about getting to your gateway and after
+     that you stop caring about link state.
+
+(17) What is the difference between IPv6 and IPv4
+
+     IPv4 addresses are 64 bits, which gives you 2^64 possible addresses (though thanks
+     to different address classes, the number of addresses is far less). IPv6 addresses
+     are 128 bits which gives every host a unique IP. Split into the global routing prefix
+     (32 bits), subnet ID (16 bits) and interface ID which is a unique identifier on the subnet.
+
+(17) What are the main attributes of the ISO Security Architecture and what are their attributes:
+
+     Authentication: Assurance that the community entity is the one claimed
+     Access Control: Prevent other people from using the resource
+     Confidentiality: Nobody in the middle can read your traffic
+     Integrity: Nobody in the middle can modify your traffic without you knowing
+     Non-Repudiation: Sender cannot deny sending a message
+     Availability: Resource is accessible and usable.
+
+(18) What is the Diffie-Hellman Key Exchange Protocol
+
+     A chooses 2 prime numbers g and p and tells B what they are
+     B picks a secret (a) and NEVER TELLS A. Computes g^a mod p (B) and sends that back to A
+     A picks a secret (b) and NEVER TELLS A. Computes g^b mod p (A) and sends that back to B
+     B takes A^b mod p and A does A^b mod p
+
+     Resulting A and B numbers are the same
+
+(19) Why is encryption not enough?
+
+     MITM attack - you think are you talking to the server but you are actually talking to
+     some attacker in the middle. You then set up session with the attacker and attacker
+     sets up session with the server and the attacker can modify traffic at both ends
+
+(20) Why might a naive checksum function that simply adds up all the bytes in a buffer not be
+     successful?
+
+     Because you can quite easily end up in a situation where two marginally different buffers
+     end up with the same checksum. Consider for instance:
+
+     110011001100: Checksum 6
+
+     We flip four bits:
+     111100001100: Checksum 6
+
+     Also that tells you nothing about where the error occurred.
+
+(21) What would be considered a failure case for a CRC algorithm?
+
+     When a known-bad frame got transmitted and its checksum matched
+     anyway.
+
+(21) Write pseudocode for CSMA/CA
+
+enum csma_ca_packet_type {
+    RTS,
+    CTS,
+    DATA,
+    ACK
+}
+
+struct csma_ca_packet {
+    csma_ca_packet_type type;
+    int time;
+    int seq;
+    int sender;
+    int recipient;
+    int length;
+    char payload[256];
+    int csum;
+}
+
+int transmit_seq = 0;
+
+static const unsigned int OUR_ID = 0;
+
+void event_queue() {
+    while (true) {
+        csma_ca_packet *p = read_csma_ca_packet();
+
+        if (!validate_checksum(p)) {
+            continue;
+        }
+
+        switch (p->type) {
+            case RTS:
+                if (p->recipient == OUR_ID) {
+                    transmit(new_csma_ca_packet({
+                        type: CTS,
+                        time: p->time,
+                        seq: 0,
+                        recipient: p->sender,
+                        length: 0,
+                        payload: NULL,
+                    });
+                } else {
+                    sleep_until(p->time);
+                }
+                break;
+            case CTS:
+                if (p->recipient == OUR_ID) {
+                    transmit(new_csma_ca_packet({
+                        type: DATA,
+                        time: p->time,
+                        seq: transmit_seq++,
+                        recipient: p->sender,
+                        length: get_pending_packet_length(),
+                        payload: read_pending_packet(),
+                    });
+                } else {
+                    sleep_until(p->time);
+                }
+            case ACK:
+                if (p->recipient == OUR_ID &&
+                    p->seq == transmit_seq)
+                    unblock_network_layer();
+            case DATA:
+                read_data(p->data);
+                sleep_until(p->time - CONSTANT);
+                transmit(new_csma_ca_packet({
+                    type: ACK,
+                    time: p->time,
+                    seq: p->seq,
+                    recipient: p->sender,
+                    length: 0,
+                    payload: NULL
+                }));
+            case NEW_PACKET:
+                transmit(new_csma_ca_packet({
+                    type: RTS,
+                    time: expected_medium_hold_time(),
+                    seq: 0,
+                    recipient: intended_recipient(),
+                    length: 0,
+                    payload: NULL
+                }));
+        }
+    }
+}
+

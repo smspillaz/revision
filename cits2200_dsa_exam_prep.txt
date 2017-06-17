@@ -1,0 +1,80 @@
+Revision
+
+(a) Explain the OpenGL synthetic camera model
+
+    Modelled after the pinhole camera, eg xp = x/z, yp = y/z, z = -d . Projects
+    a 3D image into a 2D one as though light were passing through a pinhole.
+
+    In a real pinhole camera, the X and Y planes would be inverted since we are
+    projecting on to the face of the camera. In OpenGL, we put the viewing
+    plane on the other side so as to correct this inversion.
+
+
+(b) Default view volume
+
+    Size 2, extends to 1 in all directions. Center is at 0, 0, 0. If you want
+    another one such as a pyramid, you'd use glPerspective or glFrustum
+    to define the view planes. Can also scale the modelview matrix in order
+    to change the extents of the view volume.
+
+
+(c) What is clipping in the context of OpenGL
+
+    Removal of primitives that are not within the view volume. Happens right
+    after primitive assembly so that they don't get processed any further.
+
+(d) What is rasterization
+
+    The process of converting primitives to fragments. Happens just before
+    the fragment shader. Inputs are the interpolated outputs of the vertex
+    shader.
+
+
+(3)
+
+    (a) What is the difference between Phone and Blinn-Phone
+
+        Both models operate with ambient, specular and diffuse lighting.
+
+        Phong: Need to compute the perfect reflector for each vertex, which will
+        cause the specular component of an object to render more correctly
+
+        eg:
+
+            c = Iaka + Idkd(l dot n) + Isks(v dot r)^a
+            Where r = (l dot n), eg 
+
+            c = Iaka + Idkd(l dot n) + Isks(v dot (l dot n))^a
+
+        In blinn-phong, if the lights are far away enough to be treated as at
+        infinity, we can compute a halfway vector per light source as opposed
+        to per vertex
+
+            h = L + V / (|L + V|)
+            c = Iaka + Idkd(l dot n) + Isks(n dot h)
+
+    (c) Why is a fourth comonent added to the usual three dimensional co-ords
+
+        Both points and directions (vectors) can be represented using three
+        dimensional co-ordinates. The fourth component 'w' represents whether
+        a three-dim co-ord is a point or a vector (vector if 0.0, point if
+        w > 0, where the vector is then wx, wy, wz).
+
+        This can be used to represent translation through the use of a 4x4
+        matrix multiplication. It is also used when building a projection
+        matrix (eg, perspective transformation where the last
+        row is a, b, c 1 where a, b and c are nonzero).
+
+(4)
+
+    (c) Suppose you have a situation where both the viewer and the only light
+        source are always very distant from objects in the scene. How can you
+        take advantage of this to perform lighting calculations very efficiently
+
+        (1) In the per-vertex case you can use flat shading instead of linear
+            shading. This disables linear interpolation, which means that only
+            a single calculation needs to be done per fact as opposed to per
+            vertex.
+
+        (2) In the per-fragment case we can use the blinn-phong model which means
+            that we don't need to do the perfect reflector calculation per vertex.

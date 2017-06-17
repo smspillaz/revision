@@ -1,0 +1,218 @@
+Question 1:
+
+    The shape of the view volume is in the shape of a cube. No projection
+    matrix is set by default (or rather, it is set to I), so verticies can
+    essentially be drawn from -1 -> 1 on both axes, with 0,0 representing
+    the center of the volume.
+
+Question 2
+
+    The pipeline architecture consists of both a general state machine and
+    a series of fixed-function and programmable pipeline components. It looks
+    something like this:
+
+    Application -> Vertex Shader -> Fixed-function Clipping ->
+    Primitive Assembly -> Rasterization ->
+    Fragment Shader -> Depth and Stencil Test -> Scissor Test -> Blending ->
+    Write Masking
+
+    The Application layer of the pipeline is responsible for uploading data 
+    to the CPU and manipulating the pipeline state.
+
+    The vertex shader is reponsible for applying user-defined vertex
+    transformations to each vertex. Those transformations typically include
+    the model-view-projection transformation, which puts the vertex in
+    the expected place on the viewport.
+
+    In fixed-function clipping we throw away any verticies which don't
+    meet clip tests. We might also have some fixed function vertex transformation
+    functions which happen here, such as the viewport transform to window
+    space.
+
+    In primitive assembly, according to the primitive mode used glDrawElements
+    or glDrawArrays, verticies are wound into triangles.
+
+    In rasterization, the distance between
+    each point in each assembled triangle is used to provide interpolated
+    co-ordinates to each fragment in the fragment shader.
+
+    In the fragment shader, we map interpolated attribute and position
+    co-ordinates into pixel values. This is where colors and texturing
+    are applied. The stage is programmable, so it can also be used for
+    lighting.
+
+    In the depth and stencil test, we remove fragments and prevent them from
+    being written to the attached color buffer if they don't satisfy some
+    depth or stencil condition in relation to the existing co-ordinate value
+    on the depth or stencil buffer.
+
+    In blending, we apply one of the Porter/Duff compositing equations
+    to blend between existing color values in the color buffer and the
+    incoming color value according to its alpha component.
+
+Question 3:
+
+    Application 1: Applying model view transformation matrix to a vertex
+    Application 2: Calculating per-vertex normals for use in a Gourad-lighting
+                   fragment shader.
+
+Question 4:
+
+    (a) glutInitDisplayMode(GLUT_SINGLE): Obtains and initialises windowing-
+        system resources to render to a color buffer using the GPU. The
+        GLUT_SINGLE constant indicates that we wish to render using single-
+        buffering (eg, draw commands affect the displayed region straight
+        away, as opposed to when glSwapBuffers is processed in the
+        pipeline).
+
+    (b) glutMainLoop(): Enters the GLUT main loop. This function does not
+        return until the program exits. It polls for input events or timeouts
+        so that attached callbacks can update the state of the program and
+        send new drawing commands to the GPU.
+
+    (c) Z-Buffering works by implementing a 'z-test'. Every fragment has
+        interpolated co-ordinates which includes an interpolated depth
+        co-ordinate. If we want to ensure that objects in front of others
+        will occlude the latter objects, we paint everything to the
+        color buffer as normal and every time a fragment is written, we also
+        write its corresponding depth value to the depth buffer. When subsequent
+        fragments are to be written at that location, we read the corresponding
+        depth value and test that it is greater or less than the incoming
+        fragment's depth value. Only write the new value if the test passes.
+
+Question 5:
+
+    A callback function is used to periodically update the state of the
+    program in response to some event. For instance, you might have the following
+    callbacks:
+
+        glutDisplayFunc: Called when the underlying backbuffer is invalidated
+        and new draw commands need to be send to the CPU. Also called in
+        response to glutPostRedisplay(), which is an application-specific
+        indicator that the backbuffer contents should be updated with
+        new draw commands.
+
+        glutKeyboardFunc: Called when keys are pressed on the keyboard. Might
+        be used to update program state and later call glutPostRedisplay()
+
+
+Test Question 6:
+    
+    How can you find the projection of a point at (x, y, z) in a pinhole camera
+    system?
+        
+        Use trigonometry - xp / zp = x / z, yp/zp = y/z zp = -d
+
+        Note that the default projection is upsdie down and reversed, so you
+        need to scale by -1.
+
+Why do we need to have a w member in our vectors?
+
+    In order to distinguish between positions and vectors. A position
+    is always expressed as (wx, wy, wz, w), wheras a vector is (x, y, z, 0).
+
+    Using 4x4 matrices with a w row and column allows us to express translation
+    in the same terms as rotation and scaling.
+
+How many degrees of freedom in a rigid transformation?
+
+    This is a 4x4 matrix with the form:
+
+        R    t
+        0... 1
+
+        R11 R21 R31 t1
+        R12 R22 R32 t2
+        R13 R23 R33 t3
+        0   0   0   1
+
+    R is a rotation matrix, made up of three euler angles. Thus, three degrees
+    of freedom, plus t (the translation vector). In a rigid transformation
+    you preserve scale factors - only the position changes.
+
+How many degrees of freedom in a similarity transform?
+
+    In this matrix you have 4 degrees of freedom - the rotation matrix
+    and a scalar, plus t.
+
+        R    t
+        0... 1
+
+        R11 R21 R31 t1
+        R12 R22 R32 t2
+        R13 R23 R33 t3
+        0   0   0   s
+
+    The effect of this matrix is to scale equally in all directions.
+
+
+How many degrees of freedom in an affine transform?
+
+    In this matrix you have
+
+        A11 A21 A31 t1
+        A12 A22 A33 t2
+        A13 A23 A33 t3
+        0   0   0   1
+
+    A is any non-singular 3x3 matrix. It preserves parallelism, length and
+    area. A characteristic of the affine transform is that the
+    last row is 0 0 0 1. It only has 12 degrees of freedom.
+
+How would you translate a point by use of basis vectors?
+
+    Use a displacement vector and displace every point by
+    the same vector
+
+        p = [x, y, z, 1]
+        p = [x', y', z', 1]
+        d = [dx, dy, dz, 0]
+
+        p' = p + d
+
+    In matrix form that would be T = T(dx, dy, dz), so
+
+        1 0 0 dx
+        0 1 0 dy
+        0 0 1 dz
+        0 0 0 1
+
+    i.e x + dx, y + dy, z + dz, 0 + 1
+
+How would you rotate in 2D? Use a matrix of the following forms:
+
+    x cos 0 - y sin 0
+    x sin 0 + y cos 0
+
+    What this effectively does is apply the component of the angle to each
+    part of the other vector.
+
+Rotation about the z-axis
+
+    cos0 -sin0 0 0
+    sin0 cos0  0 0
+    0     0    1 0
+    0     0    0 1
+
+    This is the same sort of thing as rotation about the Z axis in 2D, we just
+    add the parts of the identity matrix in later
+
+Rotation about the x-axis and y-axis
+
+    1    0   0    0
+    0  cos0 -sin0 0
+    0  sin0 cos0  0
+    0    0   0    1
+
+    Same sort of thing. Here we are applying the cos and sin transformations
+    on the x and z components, whilst X stays constant. It should be no
+    suprise that Y-axis rotation is as follows:
+
+    cos0  0   sin0  0
+    0     1     0   0
+    -sin0  0  cos0  0
+    0     0     0   1
+
+    Note that the only thing different here is the location of the negative
+    sign. It is on the XZ component of the matrix as opposed to the ZX component
+    which is to ensure that the co-ordinate system does not become left-handed.

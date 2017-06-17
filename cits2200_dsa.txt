@@ -1,0 +1,203 @@
+(1)(a) write pseudocode for the merge sort algorithm
+
+    merge(int start, int end, int[] input, int[] output) {
+        /* Base case */
+        if (start - end == 1) {
+            output[start] = input[start];
+        } else {
+            /* Recursive case, find the middle and sort the two
+             * child arrays (note that we are using integer division
+             * here so the middle is the exclusive upper bound that
+             * gets floor'd) */
+            int middle = start + (end - start) / 2;
+
+            /* Note that we swap the two arrays here, this allows us
+             * to use the result of the recursive merge in our own merge */
+            merge(start, middle, output, input);
+            merge(middle, end, output, input);
+
+            /* Now go through and perform the merge operation, we need
+             * to pick from the left array in the case that:
+             * (1) We still have elements remaining to pick, AND:
+             * (2) The right subarray is exhausted OR
+             * (3) array[left_index] < array[right_index]
+             */
+            int left_index = start;
+            int right_index = middle;
+            for (int k = start; k < end; ++k) {
+                if (left_index < middle && (right_index >= end || input[left_index] < input[right_index])) {
+                    output[k] = input[i++];
+                } else {
+                    output[k] = input[j++];
+                }
+            }
+        }
+    }
+
+    merge(0, array.length, array, array);
+
+    (b) Asymptotic time complexity is O(N lg N) - Every time we do a merge
+        it costs N and we have to do lg N merge ops since we are halving
+        every time.
+
+        merge(array) = {
+            array if array.length == 1
+            merge(array[0:array.length / 2]) + merge(array[array.length / 2:]) otherwise
+        }
+
+    (c) Simulation
+
+        9 8 7 6 5 4 3 2 1
+
+        9 8 7 6
+
+        9 8
+
+        8 9
+
+            6 7
+
+        6 7 8 9
+
+               5 4 3 2 1
+        
+               5 4
+
+               4 5
+
+                   3 2 1
+
+                   2 3
+
+                       1
+                
+                   1 2 3
+
+               1 2 3 4 5
+    
+        1 2 3 4 5 6 7 8 9
+
+(2)
+
+    public interface ListNode {
+        public Integer GetValue();
+    }
+
+    public class ListLeg implements ListNode {
+        Integer value;
+
+        public ListLeg(Integer value) {
+            this.value = value;
+        }
+
+        Integer GetValue() {
+            return this.value;
+        }
+    }
+
+    public class ListBody implements ListNode {
+        ListLeg right;
+        ListLeg left;
+        ListBody prev;
+        ListBody next;
+        Integer value;
+
+        ListBody(Integer value, ListLeg right, ListLeg left, ListBody prev, ListBody next) {
+            this.value = value;
+            this.right = right;
+            this.left = left;
+            this.prev = prev;
+            this.next = next;
+        }
+
+        Integer GetValue() {
+            return this.value;
+        }
+
+        void ConnectLegToBody(ListLeg leg) {
+            if (this.right == null) {
+                this.right = leg;
+            } else if (this.left == null) {
+                this.left = leg;
+            }
+
+            /* I'm going to assume that this is an error case */
+            throw new ValueException("Operation not supported, sorry");
+        }
+
+        void DeleteBefore(WindowLinked w) {
+            if (w.body.prev != null) {
+                if (w.body.prev.prev != null) {
+                    w.body.prev.prev.next = w.body;
+                    w.body.prev = w.body.prev.prev;
+                }
+            } else {
+                throw new OutOfRangeException();
+            }
+        }
+
+        void ListNode Search(int i) {
+            ListBody body = this;
+
+            /* Go all the way back to the beginning first */
+            while (body.prev != null) {
+                body = body.prev;
+            }
+
+            while (body != null) {
+                /* Okay, now that we're at the start, lets search this */
+                if (body.value == i) {
+                    return body;
+                }
+
+                if (body.right != null && body.right.value == i) {
+                    return body.right;
+                }
+
+                if (body.left != null && body.left.value == i) {
+                    return body.left;
+                }
+
+                body = body.next;
+            }
+
+            return null;
+        }
+    }
+
+Q3
+
+    (a)
+    Prove that n log^3 n is not O(n^2)
+
+        Need to show that there is some c > 0 and n0 >= 1 such that
+        n log^3 n is <= n^2 for all n >= n0
+
+            log^3n <= n
+        
+            There exists an n (1) which satisfies the rule,
+            therefore n log^3 n is n^2
+        
+    Prove that n^3 is not O(n^2 log n)
+
+        Need to show that there is some c > 0 and n0 >= 1 such that
+        n^3 is > n^2 log n
+
+            n > log n
+
+            (1) > log (1)
+
+            There exists an (1) which satisfies the rule, therefore
+            n^3 is not O(n^2 log n)
+    
+    (b) In order to pop N items from the stack, we need to push N
+        items on to the stack. As such, the cost of multi-popping
+        for each push is _O_(N/N) eg, _O_(1)
+
+
+Q4 Write pseudocode or explain in your own words the non-recursive
+   depth first search algorithm for a tree. What is the asymptotic
+   complexity of this algorithm in terms of the number of vertices
+   in the tree.
+
+    

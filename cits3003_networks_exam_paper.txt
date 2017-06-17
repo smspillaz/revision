@@ -1,0 +1,495 @@
+CITS3003 Sample Paper
+
+(1)
+
+    (a) Explain the synthetic camera model, including:
+
+        How it relates 3D space to 2D images:
+
+        3D space can be viewed through the "lens" of a synthetic camera
+        on a 2D display, however we must account for the Z axis in the display
+        of the image. Typically this is done by projecting 3D co-ordinates
+        into a 2D space to give the illusion of depth.
+
+        We have xp/zp = x/z, yp/zp = y/z zp = -d (d is the focal length).
+
+        Note that the image projected by the pinhole camera model is upside down
+        and inverted.
+
+        How is it relevant to OpenGL
+
+        OpenGL renders into a 2D space, but client code can perform
+        its operations in 3D space until projection occurrs.
+
+        OpenGL modifies this by moving the image plane to the same side
+        as the scene, which has the effect of flipping the image
+        to appear the correct way around (and not inverted).
+
+        How does it relate to a pinhole camera
+
+        The pinhole camera model is a mathematical mechanism that
+        we use to simulate projection from 3D space into 2D space.
+
+    (b) What is rasterization in the context of OpenGL?
+
+        Rasterization is the process of rendering individual fragments into
+        a colour buffer and depth and stencil values into the depth and stencil
+        buffers. The fragments themselves are determined in the fragment
+        shader. Typically, the inputs to the fragment shader are interpolated
+        values from primitives computed in the primitive assembler. For instance, there
+        may be three vertices used to render a triangle and every fragment
+        in between gets an interpolated texture co-ordinate value so as to
+        sample the correct part of a texture for that fragment.
+
+    (c) What is clipping in the context of OpenGL and where does it fit in
+        the steps of the OpenGL pipeline architecture?
+
+        Clipping is the process of removing excess geometry that will not
+        be visible in some defined view volume. In a perspective
+        projection model, the x and y axes pinch inwards towards a vanishing
+        point as the z value increases. Conversely, a near clip plane must
+        be defined just in front of the camera, otherwise geometry behind
+        the camera will be visible.
+
+        Clipping generally takes place after the vertex processing stage of the
+        pipeline. Note that by default, OpenGL will only clip entire primitives
+        where the primitive itself does not fit within the view volume, as opposed
+        to modifying geometry such that it would fit within the view volume.
+
+    (d) Describe the default shape of the OpenGL view volume. Describe what you
+        would do if you wanted to use a view volume other than the default one.
+
+        The default shape of the view volume is a cube with no projection
+        projection of size 2, 2, 2. The the center of the view volume is
+        at 0, 0, 0 and so it extends out to 1, 1, 1 and -1, -1, -1.
+
+        If you wanted to use a view volume other than the default one, you would
+        need to define both a new projection matrix and a world matrix. For
+        instance, you might want to define a view frustum transformation
+        matrix that uses the _perspectiv_e transformation and you might also
+        scale by window width and window height such that world co-ordinates
+        lined up to window co-ordinates.
+
+(2)
+    (a) What is the difference between request input mode and event
+        input mode
+
+        In request mode the process blocks until the requested event
+        occurs. This requested event is deemed to have occurred when
+        the /trigger process/ notices that an event happened and that
+        the /measure process/ ascertained was the correct event.
+
+        In event mode, the process is notified asynchronously
+        when an event occurs by use of a callback in the main loop. Eg,
+        the event is added to a queue which the process continually polls
+        as part of its main loop. The program can specify which events it
+        wants to know about so that its buffers do not fill up too quickly.
+
+    (b) What is the purpose of the idle callback
+
+    (c) Why do we want double buffering?
+
+        Tear free rendering. Flips are atomic and can be done when the hardware
+        signals a vblank.
+
+    (d) Give three common applications of vertex shaders in OpenGL
+
+        (1) To apply the model-view-projection transformation on
+            a given vertex. This model-view-projection matrix would allow the user
+            to change the 
+
+        (2) To apply skinning transformations based on some armature
+            and set of vertex weights. This would morph the vertices to fall in
+            line with the bone weights.
+
+        (3) To compute per-vertex lighting using the Gourad shading model
+
+    (e) Why does modern OpenGL use shader programs written in GLSL?
+
+        GPUs don't expose the same kind of memory and compute model needed
+        to run a general purpose compute language like C++, since they're
+        optimised for vertex and fragment processing. GLSL is a variant of
+        C that only exposes that functionality and thus allows the programmer
+        to write code that will execute directly on the GPU.
+
+(3) 
+    (a) What is the difference between the Phong Model of shading and
+    Blinn-Phong Model?
+
+        Both involve the diffuse, specular and ambient terms for each color.
+
+        The Phong model of shading computes the perfect reflector, that being
+        the angle of incidence and angle of reflection by taking the dot
+        product between the vector towards the light and the surface normal. This
+        need to be computed for every point on every light.
+
+          I = kdId(l dot n) + ksIs(v dot r)^a + kaIa
+
+          (e.g., kd, ks, ka = diffuse, specular ambient)
+          (l is the direction of the point to the light source)
+          (n is the surface normal)
+          (v is the direction of the point to the viewer)
+          (r is the direction of the perfect reflector)
+          (a is the shininess coefficient constant)
+
+        Note that the perfect reflector is competed by 2(l dot n)n - l
+
+        The Blinn-Phong model does away with the perfect reflector and calculates
+        a "halfway vector" for each light source, expressed as the sum of
+        L + V divided by the magnitude of L + V. Where we treat the light sources
+        and the viewer as being very far away, we can essentially compute the 
+        halfway vector once per light source per object, instead of per vertex.
+
+          I = kdId(l dot n) ksIs(n dot h)^B + kaIa
+
+          (h is the ‘halfway vector’, computed as (L + V) / |L + V|)
+          (B is the shininess coefficient)
+
+    (b) Suppose you want to build a program using OpenGL that draws two kinds
+        of objects - shiny billiard balls and dull wooden balls. How would you
+        implement these in a way that realistically represents the differences
+        in shininess between these two kinds of objects?
+
+            We would define a difference in "materials" for each of these
+            objects. The material consists of the texture and a diffuse
+            and specular value.
+
+            In Phong shading, we would increase the maginitude of the specular
+            component of the light source based on the object's specular value. If
+            an object was to appear more dull, we would increase its diffuse
+            component and decrease its specular component. In either case, the
+            specular or diffuse term must dominate.
+
+    (c) Suppose you have a situation where the viewer and the only light source
+        are always very distant from objects in a scene. How could you
+        take advantage of this?
+
+            In the per-vertex case, you could apply lighting uniformly
+            to each surface by using flat shading as opposed to linear shading. Or,
+            if the object was very very far away, you could also just apply
+            the ambient component of the light source uniformly to the object.
+
+            In the per fragment case, the usage of the Blinn-Phong model will
+            save an additional dot-product calculation, since we can re-use
+            the halfway vector for each light source on each vertex.
+
+
+    (d) What are euler angles and explain how you would represent a rotation using them?
+
+        An Euler angle represents a rotation of an object along a given axis. In order
+        to represent a given rotation, you would craft three rotation matrices for each
+        axis rotation.
+
+    (d) Explain the difference between a directional light and point source light
+        in the context of OpenGL
+
+            A directional light source has a distance at infinity. Because
+            of that, we do not attenuate it and just apply its impact based
+            on its direction. A point light source has a position and so
+            we need to apply an attenuation factor based on its distance.
+
+           Directional light sources are modelled with a position (x, y, z)
+           and intensity (r, g, b). Distance term can be incorporated to
+           attenuate I.
+
+(4) Explain clearly what each function call does in the context of the following
+    main program
+
+      int main(int argc, char **argv)
+      {
+                 glutInit(&argc, argv);
+                 glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
+                 glutInitContextVersion( 3, 2 );
+                 glutInitContextProfile( GLUT_CORE_PROFILE );
+                 glutCreateWindow("Example");
+                 glutMouseFunc(mouse);
+                 glutReshapeFunc(reshape);
+                 glutDisplayFunc(display);
+                 init();
+                 glutMainLoop();
+      }
+
+      glutInit - Initialise global varaiables and state used by GLUT and parse
+                 arguments
+      glutInitDisplayMode - Initialise the backbuffer using double-buffering
+                            and an RGBA colour buffer.
+      glutInitContextVersion - Set the OpenGL version to 3.2, allowing the use
+                            of 3.2 APIs
+      glutInitContextProfile - Uses the OpenGL core profile as opposed to the
+                               compatability profile. This disables the use
+                               of the legacy fixed function pipeline
+      glutCreateWindow - Create a window to display the backbuffer setup in
+                         glutInitDisplayMode, with the heading EXAMPLE.
+      glutMouseFunc - Set a callback function for mouse clicks and motion
+      glutReshapeFunc - Set a callback function that gets called when the
+                        window size changes
+      glutDisplayFunc - Set a callback function that gets called every time
+                        a new frame can be rendered.
+      init - Set up global program state (for instance, vertex buffers,
+             uniforms)
+      glutMainLoop - Enter the GLUT main loop, where the program continually
+                     checks the state of the input devices and the vblank state
+                     and calls the registered callbacks as appropriate. This
+                     function does not return until we post an exit message
+                     to the main loop queue.
+
+
+  (b) Why is a fourth component (w) added to the usual three dimensions of a vector?
+
+      The fourth component indicates whether the vector is a direction or a
+      position. A vector is a position where the (w) component is 1.0
+      and is a direction where it is 0.0. This allows us to represent
+      translation through matrix multiplication along with scaling and rotation.
+
+     For translation, the vector (d) can now appear in the last column of the
+     matrix.
+
+(5)
+  (a) Consider a horizontal row of fragments that form part of a triangle during rasterization. Suppose the coordinates, normals and texture coordinates of the first and last fragment in the row have already been calculated. How can we quickly calculate the coordinates of the other fragments as we scan along the row from the first fragment to the last fragment?
+
+      We can just interpolate between the first and last point by taking the
+      delta between both points and applying that to the first point weighted
+      by the percentage of the distance remaining.
+
+      So, for instance:
+
+          start = value[1]
+          end = value[D]
+          delta = end - start
+          for d = 1 to D {
+              value[d] = value[1] + ((D - d) / D) * delta
+          }
+
+  (b) The painter’s algorithm for hidden surface removal is an alternative to the z-buffer al- gorithm that instead sorts scene objects by distance and then draws them starting from the furthest away, with each overwriting (or “overpainting”) what has previously been drawn. Describe two situations where this algorithm will not work well.
+
+      This does not work well where you have intersecting geometry, for instance
+      where two planes cross each other having the same starting and ending
+      Z co-ordinates and crossing X lines. It also does not work where you have
+      triangles forming a cycle of overlapping depth.
+
+  (c) What is mipmapping? What advantages does it provide?
+
+      Mipmapping creates creates a number of texture mip stores per texture,
+      halving in size for every mip store until the number of mip levels specified
+      is reached or the size equals 1. Depending on the distance the fragment
+      is computed to be at, we can sample a mip level on the texture that is
+      smaller. This is more cache friendly. It also results in less interpolation error.
+
+  (d) Describe two texture sampling mechanisms in OpenGL:
+
+      (1) Point sampling (GL_CLOSEST): Just picks the point on the texture which is closest
+          to the interpolated texel value. This is the most accurate in the sense that it
+          only picks colours in the texture, however, the rendered result will often have
+          a lot of jagged lines and won’t be in proportion to the original texture. It is
+          also faster.
+
+      (2) Linear interpolation: Take the closest points in the texture to the interpolated
+          texel value and take the weighted sum of all of them. This involves some more
+          computation, but is often done using special hardware instructions.
+
+  (e) What is aliasing?
+
+      Aliasing happens when smooth lines or curves become jagged because there isn’t enough
+      resolution on the device to display them smoothly. In texture mapping, you can get around
+      this by using interpolation, such that the edges of the lines tend to blur into the
+      background. This gives the impression that the line is smoother.
+
+  (d) Suppose we want to assign texture coordinates to a spherical object, with the 2D coordi- nates mapping smoothly onto the 3D surface as much as possible. Describe two different natural ways of doing this, and compare their advantages.
+
+      First method: Backward mapping from screen to texture co-ordinates attempting
+                    to reverse interpolate from a parametric surface on to
+                    a 2D surface. However, the function to find this mapping
+                    must be computed on a case by case basis.
+
+      Second method: Approximating mapping using an "intermediate object". We know
+                     the parametric equation for a sphere of a given radius, so
+                     we map co-ordinates on the sphere to the texture. Then, to
+                     determine the texture co-ordinates for each point on the final
+                     object, we can project normals either from the immediate object
+                     to the final object, or from the final object to the immediate
+                     object or from the center to the edge of the immediate object.
+
+                         - Going from the intermediate object to the actual object
+                           tends to cause less distortion on concave surfaces.
+
+                         - Going from actual to intermediate causes less distortion
+                           when surfaces are convex.
+
+                         - Going from the center to the intermediate object tends
+                           to cause distortion equally, but the distortion
+                           is less so.
+
+(6)
+
+    (a) What kinds of objects are generally suitable for modelling using subdivision surfaces? Include an example of where using subdivision surfaces would be appropriate, and another of where it wouldn’t.
+
+        Complex objects which are supposed to have rounded surfaces, for
+        instance, the body of an actor. We would define the main structural
+        features of the body, such as the head, arms and legs and then use
+        subdivision surfaces to round the surface without having to define
+        all the geometry ourselves.
+
+        Locally smooth objects have a continuous first derivative everywhere and
+        a continuous second derivative almost everywhere and can be recursively
+        generated from a simple polygonal mesh acting as the control cage.
+
+        Blocky objects are not suitable for use with subdivision surfaces, since
+        this will make them appear more rounded. This would also be the case where
+        you need to have precise edges on an object, for instance, CAD modelling.
+
+    (b) Suppose we apply subdivision surfaces starting with a box shape. What happens to the resulting surface if we add additional vertices near one corner without altering the shape of the box?
+
+        If we add more control points to one corner of a model, that point is going
+        to become shaper, because they have more weight on the subdivision surface
+        transformation.
+
+    (c) What are bone weights in the context of animation?
+
+        Bone weights are used to determine how much the transform of a bone
+        affects corresponding vertices in the mesh. A weight of 1 means that
+        the vertex will move in line with the bone, whereas a weight of 0
+        means that the vertex will not be affected. The bone weights generally
+        should sum to 1.
+
+    (d) In a typical implementation of skinning in OpenGL that takes advantage of shader pro- grams, like that in lectures, say what the main static data is that’s passed to the shaders (i.e., not changing between frames) and what the main dynamic data is that’s passed to the shaders (i.e., changing each frame).
+
+        Static data:
+            Solved Bone IDs per vertex (max 4). This depends on the weight
+            for each bone on each vertex, but does not change unless the mesh
+            itself changes.
+
+            The bone weights per vertex
+
+        Dynamic data:
+
+            The transforms of each bone
+
+
+
+(7)
+
+    (a) What are the problems with using a symbol instance table to represent
+        a complex model?
+
+        A symbol instance table does not show relationships between different
+        parts of a complex model. You would need to apply the same transformation
+        to each object if you wanted to rotate all of them, for instance.
+
+    (b) How would you model relationships between interconnected objects?
+
+        Use a hierarchical tree where each object is connected to the other.
+        So for instance, for a lower arm connected to an upper arm:
+
+        RuaTulRlaTubRb
+
+    (c) What does gluLookAt do?
+
+        It defines an eye camera position, a fixation point and an up direction
+
+    (d) What is the default Orthographic Projection in OpenGL?
+
+        The default orthographic projection is defined by the identity matrix with (z, z) = 0.
+        The focal length is considered to be infinite, which means that shifting something in
+        the Z direction doesn’t appear to do anything.
+
+    (e) What is a simple perspective projection?
+
+        xp/d = x/z yp/d = y/z, which means that:
+
+        xp = x/(z/d) yp = y/(z/d), zp=d, where d is the focal length, e.g.:
+
+        [1, 0, 0, 0
+         0, 1, 0, 0,
+         0, 0, 1, 0,
+         0, 0, 1/d, 0]
+
+     (f) What is the perspective division and why do we need it?
+         We need the perspective division in order to return the ‘w’ component back to
+         inhomogeneous co-ordinates.
+
+
+(8)
+
+    (a) How is translation represented using homogenous co-ordinates?
+
+        Use a translation matrix defined as:
+
+        [1, 0, 0, dx,
+         0, 1, 0, dy,
+         0, 0, 1, dz,
+         0, 0, 0, 1]
+
+    (b) How is rotation represented across the different axes
+
+        Z Axis:
+
+         Rz(0) = [cos0, -sin0, 0, 0
+                  sin0, cos0,  0, 0
+                  0, 0,        1, 0
+                  0, 0,        -, 1]
+
+         We know that x’ = r cos (0 + phi) and y = r sin (0 + phi)
+
+         x’ = x cos 0 - y sin 0
+         y’ = x sin 0 + y cos 0
+
+        X Axis:
+
+         Rx(0) = [1, 0,    0,     0
+                  0, cos0, -sin0, 0,
+                  0, sin0, cos0,  0,
+                  0, 0,    0,     1]
+
+        Y Axis:
+
+         Rx(0) = [cos0,  0, sin0, 0
+                  0,     1, 0,    0,
+                  -sin0, 0, cos0, 0,
+                  0, 0,  0,       1]
+
+
+     (c) What does the inverse of a rotation matrix represent?
+
+        R^-1(0) = R(-0)
+
+(9)
+
+   (a) What is rigging and how does it relate to skinning?
+
+       Rigging is the process of using low dimensional controls to interpolate
+       the positions of a high fidelity mesh. We set up bones in a rig using a
+       hierarchical set of transforms. Skinning is the process of animating a model
+       whilst reducing the amount of folding and creasing as it animates. We use the
+       rig and a set of bone weights to determine how to transform the skin.
+
+   (b) Why do we need to use bone weights
+
+       Because a vertex might be affected by multiple different bones.
+
+   (c) What effect does transforming a bone have in a mesh?
+
+       It transforms all the child bones
+       Transforms corresponding vertices
+       Transforms the normal vectors similarly.
+
+   (d) Why do we need inverse bone matrices
+
+       We need to transform the skin data from the rest pose to bone space. This undoes
+       all the bone transformations at rest pose to take the skin vertex data back to
+       its root pose. From there, we can re-apply the bone transformations (for the
+       moved bones) to the vertex data).
+
+(10)
+
+   (a) What is linear independence?
+
+       Adding to different components of a vector does not change the value of each
+       component (e.g., (1, 0, 0) + (0, 1, 0) does not change the x co-ordinate).
+
+   (b) What are homogenous co-ordinates
+
+       The homogenous co-ordinates form for a three dimensional point is given as
+       p = [x y z 1] = [wx wy wz w]. We return to a three dimensional point by doing
+       x <- x / w, y = y / w, z = z / w
+
+    
